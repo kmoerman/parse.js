@@ -7,6 +7,9 @@
   "scripts": {
     "test": "npx jest"
   },
+  "files": [
+    "parse.js"
+  ],
   "author": "Klaas Moerman <klaasmoerman@gmail.com>",
   "license": "MIT",
   "dependencies": {},

@@ -18,6 +18,23 @@ function parser (f) {
   return f
 }
 
+parser.force = function (p) {
+  if (typeof p === 'string' || p instanceof String) {
+    switch (p.length) {
+      case 0 : return epsilon
+      case 1 : return char(p)
+      default: return string(p)
+    }
+  }
+  else if (typeof p === 'number'  || p instanceof Number) {
+    return parser.force(p + '')
+  }
+  else if (p instanceof Array) {
+    return sequence(...p.map(parser.force))
+  }
+  else return p
+}
+
 
 // PARSER RESULTS //////////////////////////////////////////////////////////////
 function result (index, value) {
@@ -146,7 +163,8 @@ function string (S) {
   })
 }
 
-function either (...ps) {
+function either (...ps_) {
+  const ps = ps_.map(parser.force)
   return parser((index, env) => {
     const N = ps.length
     let found = false
@@ -159,7 +177,8 @@ function either (...ps) {
   })
 }
 
-function sequence (...ps) {
+function sequence (...ps_) {
+  const ps = ps_.map(parser.force)
   return parser((index, env) => {
     try {
       return ps.reduce((result, p) => result.append(p(result.index, env).orThrow()), new empty (index))
@@ -170,7 +189,8 @@ function sequence (...ps) {
   })
 }
 
-function repeat (p) {
+function repeat (p_) {
+  const p = parser.force(p_)
 
   return parser((index, env) => {
 
@@ -189,7 +209,7 @@ function repeat (p) {
 }
 
 function recursive (f) {
-  const p = f(parser((index, env) => p(index, { ...env, level: env.level+1})))
+  const p = parser.force(f(parser((index, env) => p(index, { ...env, level: env.level+1}))))
   return p
 }
 
@@ -197,17 +217,20 @@ function predicate (f, e) {
   return parser((index, env) => (f(index, env) && new empty (index)) || new error (e))
 }
 
-function not (p) {
+function not (p_) {
+  const p = parser.force(p_)
   return parser((index, env) => p(index, env).invert(index))
 }
 
-function lookahead (p) {
+function lookahead (p_) {
+  const p = parser.force(p_)
   return parser((index, env) => p(index, env).and(new empty (index)))
 }
 
 
 // EXTRACTORS //////////////////////////////////////////////////////////////////
-function capture (p, f=id) {
+function capture (p_, f=id) {
+  const p = parser.force(p_)
   return parser(function (index, env) {
 
     try {
@@ -228,7 +251,8 @@ function capture (p, f=id) {
   })
 }
 
-function map (p, f) {
+function map (p_, f) {
+  const p = parser.force(p_)
   return parser(function (index, env) {
     return p(index, env).map(f)
   })
@@ -241,7 +265,7 @@ const separate  = (x,sep) => sequence(x, repeat(sequence(sep, x)))
 const start     = predicate(index => index === 0, 'input start expected')
 const end       = predicate((index, {input}) => index >= input.length, 'input end expected')
 const full      = p => sequence(start, p, end)
-const subtract  = (a,b) => sequence(not(b), a)
+const subtract  = (a,...b) => sequence(not(either(...b)), a)
 const between   = (a,b=a) => sequence(a, repeat(not.strict(b)), b)
 const until     = x => sequence(repeat(not.strict(x)), x)
 const many      = (...xs) => repeat(either(...xs))
