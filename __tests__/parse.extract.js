@@ -142,4 +142,19 @@ describe('parse.extract', () => {
 
   })
 
+  test('function sequences', () => {
+
+    const twice = x => 2*x
+    const half = x => x/2
+    const add1 = x => x+1
+
+    const n2 = capture(char.between('0', '9'), parseInt, twice)
+
+    expect(n2.parse('8').value)
+      .toEqual(16)
+
+    expect(map(n2, half, add1).parse('4').value)
+      .toEqual(5)
+  })
+
 })

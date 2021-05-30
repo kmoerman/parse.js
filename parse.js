@@ -229,18 +229,18 @@ function lookahead (p_) {
 
 
 // EXTRACTORS //////////////////////////////////////////////////////////////////
-function capture (p_, f=id) {
+function capture (p_, ...fs) {
   const p = parser.force(p_)
   return parser(function (index, env) {
 
     try {
       const _result = p(index, env).orThrow()
       try {
-        const value = f(env.input.substring(index, _result.index))
+        const value = fs.reduce((x,f) => f(x), env.input.substring(index, _result.index))
         return _result.capture(value)
       }
       catch (e) {
-        // failure of mapping f
+        // failure of mappings fs
         return new error (e)
       }
     }
@@ -251,10 +251,10 @@ function capture (p_, f=id) {
   })
 }
 
-function map (p_, f) {
+function map (p_, ...fs) {
   const p = parser.force(p_)
   return parser(function (index, env) {
-    return p(index, env).map(f)
+    return p(index, env).map(x => fs.reduce((y,f) => f(y), x))
   })
 }
 
