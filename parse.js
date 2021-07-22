@@ -142,6 +142,8 @@ char.between = function (A,B) {
   const hi = Math.max(a_,b_)
 
   return parser(function (index, {input, ci=false}) {
+    if (index >= input.length)
+      return new error ('unexpected end of input')
     const c = ci ? input[index].toLowerCase().charCodeAt(0) : input.charCodeAt(index)
     if ((!ci && c >= LO && c <= HI) || (ci && c >= lo && c <= hi))
       return new empty (index+1)
@@ -155,6 +157,9 @@ function string (S) {
   const s = S.toLowerCase()
 
   return parser(function (index, {input, ci=false}) {
+    if (index+N > input.length)
+      return new error ('unexpected end of input')
+
     const x = input.substr(index, N)
     if ((ci && x.toLowerCase() === s) || (!ci && x === S))
       return new empty (index+N)
