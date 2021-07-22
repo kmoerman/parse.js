@@ -110,6 +110,8 @@ error.prototype.map = ignore
 function char (CS) {
   const cs = CS.toLowerCase()
   return parser(function (index, {input, ci}) {
+    if (index >= input.length)
+      return new error ('unexpected end of input')
     if ((ci && cs.indexOf(input[index].toLowerCase()) >= 0) || (!ci && CS.indexOf(input[index]) >= 0))
       return new empty (index+1)
     else
