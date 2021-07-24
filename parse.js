@@ -215,9 +215,50 @@ function repeat (p_) {
   })
 }
 
+/*
+// single recursion
 function recursive (f) {
   const p = parser.force(f(parser((index, env) => p(index, { ...env, level: env.level+1}))))
   return p
+}
+*/
+
+function recursive (f) {
+
+  const recs = new Map ()
+  const defs = {}
+
+  const rec = new Proxy (parser((index, env) => def(index, { ...env, level: env.level+1})),
+    { get (target, key, proxy) {
+        if (key in target)
+          return target[key]
+        else if (recs.has(key))
+          return recs.get(key)
+        else {
+          const r = parser((index, env) => defs[key](index, { ...env, level: env.level+1}))
+          recs.set(key, r)
+          return r
+        }
+      }
+    })
+
+  const def = parser.force(f(rec)) // object will fall through
+
+  const missing = []
+
+  for (const key of recs.keys())
+    if (!(key in def)) missing.push(key)
+
+  if (missing.length > 0)
+    throw new Error (`undefined mutual recursion: ${missing.join(',')}`)
+
+  if (recs.size > 0) {
+    Object.entries(def).forEach(([key,value]) => defs[key] = parser.force(value))
+    return defs
+  }
+  else
+    return def
+
 }
 
 function predicate (f, e) {
